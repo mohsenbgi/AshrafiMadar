@@ -102,24 +102,6 @@ namespace SmartFactoryClient.Services
                         rawData.Replace("\n", " | "));
                 }
 
-                // Parse the sensor data
-                var sensorData = _dataParserService.ParseSensorData(rawData);
-                
-                if (sensorData == null)
-                {
-                    _logger.LogWarning("⚠️ Failed to parse sensor data");
-                    _totalErrors++;
-                    return;
-                }
-
-                // Validate the data
-                if (!_dataParserService.ValidateSensorData(sensorData))
-                {
-                    _logger.LogWarning("⚠️ Sensor data validation failed");
-                    _totalErrors++;
-                    return;
-                }
-
                 // Send to API
                 var success = await _apiClientService.SendSensorDataAsync(rawData);
                 
@@ -128,7 +110,7 @@ namespace SmartFactoryClient.Services
                     _totalDataSent++;
                     if (_appConfig.EnableConsoleOutput)
                     {
-                        _logger.LogInformation("✅ Data sent to API successfully: {SensorData}", sensorData);
+                        _logger.LogInformation("✅ Data sent to API successfully: {SensorData}", rawData);
                     }
                 }
                 else

@@ -127,25 +127,25 @@ namespace AshrafiMadar.Services
                 data.Alarm_System = true;
             }
 
-            if (data.Gas_Methane > 300)
+            if (data.Gas_Methane > 700)
             {
                 data.ActiveAlarms.Add("⚠️ نشت گاز متان خطرناک!");
                 data.Alarm_System = true;
             }
 
-            if (data.Gas_CO > 100)
+            if (data.Gas_CO > 650)
             {
                 data.ActiveAlarms.Add("☠️ سطح مونوکسید کربن بحرانی!");
                 data.Alarm_System = true;
             }
 
-            if (data.Tank_Pressure > 90)
+            if (data.Tank_Pressure > 800)
             {
                 data.ActiveAlarms.Add("💥 فشار مخزن در حد خطر!");
                 data.Alarm_System = true;
             }
 
-            if (data.Furnace_Temp > 1000)
+            if (data.Furnace_Temp > 600)
             {
                 data.ActiveAlarms.Add("🌡️ دمای کوره بیش از حد مجاز!");
                 data.Alarm_System = true;
@@ -164,7 +164,7 @@ namespace AshrafiMadar.Services
                 data.Warning_LED = true;
             }
 
-            if (data.Water_Leak > 400)
+            if (data.Water_Leak > 600)
             {
                 data.ActiveWarnings.Add("💧 نشت آب در تاسیسات");
                 data.Warning_LED = true;

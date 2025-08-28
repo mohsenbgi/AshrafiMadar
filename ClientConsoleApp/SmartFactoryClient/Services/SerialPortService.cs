@@ -103,69 +103,16 @@ namespace SmartFactoryClient.Services
                     return;
 
                 // Read available data
-                string incomingData = _serialPort.ReadExisting();
+                string incomingData = _serialPort.ReadLine();
                 
                 if (string.IsNullOrEmpty(incomingData))
                     return;
 
-                _logger.LogDebug("Received raw data: {Data}", incomingData.Replace("\n", "\\n").Replace("\r", "\\r"));
-
-                // Add to buffer
-                _dataBuffer.Append(incomingData);
-
-                // Process complete messages (assuming messages end with newline)
-                ProcessBuffer();
+                DataReceived?.Invoke(this, incomingData);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing received data");
-            }
-        }
-
-        /// <summary>
-        /// Process the data buffer to extract complete messages
-        /// </summary>
-        private void ProcessBuffer()
-        {
-            string bufferContent = _dataBuffer.ToString();
-            
-            // Look for complete messages (containing both header and data lines)
-            var lines = bufferContent.Split('\n');
-            
-            for (int i = 0; i < lines.Length - 1; i += 2) // Process pairs of lines
-            {
-                if (i + 1 < lines.Length)
-                {
-                    var headerLine = lines[i].Trim();
-                    var dataLine = lines[i + 1].Trim();
-                    
-                    // Check if we have a complete message
-                    if (headerLine.Contains("Smart Factory Monitoring System") && 
-                        dataLine.Contains("Furnace_Temp:"))
-                    {
-                        var completeMessage = headerLine + "\n" + dataLine;
-                        _logger.LogDebug("Complete message extracted: {Message}", completeMessage);
-                        
-                        // Fire the event with the complete message
-                        DataReceived?.Invoke(this, completeMessage);
-                        
-                        // Remove processed data from buffer
-                        var processedLength = headerLine.Length + dataLine.Length + 2; // +2 for newlines
-                        _dataBuffer.Remove(0, processedLength);
-                    }
-                }
-            }
-
-            // Keep only the last incomplete line in buffer
-            if (lines.Length > 0 && !string.IsNullOrEmpty(lines[^1]))
-            {
-                _dataBuffer.Clear();
-                _dataBuffer.Append(lines[^1]);
-            }
-            else if (bufferContent.Length > 1000) // Prevent buffer overflow
-            {
-                _logger.LogWarning("Buffer overflow detected, clearing buffer");
-                _dataBuffer.Clear();
             }
         }
 
