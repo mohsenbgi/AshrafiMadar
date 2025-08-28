@@ -1,0 +1,155 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Smart Factory Monitoring";
+}
+
+<div class="container-fluid py-3 sf-theme">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <h2 class="mb-0 fw-bold">Smart Factory Monitoring System</h2>
+            <small class="text-muted">AUTOMATIC MODE - ONLINE</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="alarm-light" id="warnLight">
+                <span class="label">Warning</span>
+                <span class="reason" id="warnReason">-</span>
+            </div>
+            <div class="alarm-light critical" id="critLight">
+                <span class="label">Alarm</span>
+                <span class="reason" id="critReason">-</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm glass">
+                <div class="card-body">
+                    <h5 class="card-title">Live Gauges</h5>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="metric">
+                                <div class="metric-label">Furnace Temp (°C)</div>
+                                <div class="metric-value" id="Furnace_Temp">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric">
+                                <div class="metric-label">Humidity (%)</div>
+                                <div class="metric-value" id="Env_Humid">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric">
+                                <div class="metric-label">Tank Pressure (bar)</div>
+                                <div class="metric-value" id="Tank_Pressure">0</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric">
+                                <div class="metric-label">Main Current (A)</div>
+                                <div class="metric-value" id="Main_Current">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm glass">
+                <div class="card-body">
+                    <h5 class="card-title">Trends</h5>
+                    <canvas id="trendChart" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card shadow-sm glass">
+                <div class="card-body">
+                    <h5 class="card-title">All Sensors</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Key</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sensorTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/%40microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        const hub = new signalR.HubConnectionBuilder().withUrl('/hubs/sensors').withAutomaticReconnect().build();
+        const keys = [
+            'Furnace_Temp','Env_Humid','Light_Level','Gas_Methane','Gas_CO','Machine_Sound','Tank_Pressure','Main_Current','Engine_Vibe','Input_Voltage','Conveyor_Dist','Water_Leak','Flame_Status','Gate_Status','E_Stop_Button','Coolant_Valve'
+        ];
+
+        const tableBody = document.getElementById('sensorTable');
+        keys.forEach(k => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${k}</td><td id="row_${k}">-</td>`;
+            tableBody.appendChild(tr);
+        });
+
+        const ctx = document.getElementById('trendChart');
+        const trend = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'Furnace_Temp', data: [], borderColor: '#E76F51', tension: 0.25 },
+                { label: 'Tank_Pressure', data: [], borderColor: '#2A9D8F', tension: 0.25 },
+                { label: 'Main_Current', data: [], borderColor: '#E9C46A', tension: 0.25 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false } } }
+        });
+
+        function setText(id, val){ const el = document.getElementById(id); if(el) el.textContent = val; }
+        function updateAlarms(s){
+            let warn = [], crit = [];
+            if(Number(s.Gate_Status) === 1 || Number(s.Water_Leak) > 0){ warn.push('Gate open or water leak'); }
+            if(Number(s.Flame_Status) === 1 || Number(s.Gas_CO) > 80 || Number(s.Tank_Pressure) > 100){ crit.push('Fire/CO/Overpressure'); }
+            const warnLight = document.getElementById('warnLight');
+            const critLight = document.getElementById('critLight');
+            warnLight.classList.toggle('on', warn.length>0);
+            critLight.classList.toggle('on', crit.length>0);
+            document.getElementById('warnReason').textContent = warn.join(' | ') || '-';
+            document.getElementById('critReason').textContent = crit.join(' | ') || '-';
+        }
+
+        function pushTrend(s){
+            const ts = new Date().toLocaleTimeString();
+            trend.data.labels.push(ts);
+            trend.data.datasets[0].data.push(Number(s.Furnace_Temp||0));
+            trend.data.datasets[1].data.push(Number(s.Tank_Pressure||0));
+            trend.data.datasets[2].data.push(Number(s.Main_Current||0));
+            if(trend.data.labels.length>40){
+                trend.data.labels.shift();
+                trend.data.datasets.forEach(d=>d.data.shift());
+            }
+            trend.update();
+        }
+
+        hub.on('SensorUpdate', (payload)=>{
+            const s = payload;
+            keys.forEach(k=>{
+                const v = s[k] ?? '-';
+                const row = document.getElementById('row_'+k);
+                if(row) row.textContent = v;
+                setText(k, v);
+            });
+            updateAlarms(s);
+            pushTrend(s);
+        });
+
+        hub.start().catch(console.error);
+    </script>
+}
