@@ -215,13 +215,54 @@
                     categories[category].forEach(sensorKey => {
                         const sensor = sensorLocations.find(s => s.key === sensorKey);
                         if (sensor) {
-                            const value = sensorData[sensorKey] || 0;
+                            // Try different possible property names for the sensor data
+                            const value = sensorData[sensorKey] || 
+                                         sensorData[sensorKey.toLowerCase()] || 
+                                         sensorData[sensorKey.replace('_', '')] ||
+                                         getSensorValue(sensorKey) || 0;
                             const sensorElement = createSensorElement(sensor, value);
                             grid.appendChild(sensorElement);
                         }
                     });
                 }
             });
+        }
+
+        // Helper function to get sensor value with different naming conventions
+        function getSensorValue(sensorKey) {
+            // Convert PascalCase_With_Underscore to camelCase_with_underscore (ASP.NET Core default JSON serialization)
+            const camelCaseKey = sensorKey.charAt(0).toLowerCase() + sensorKey.slice(1);
+            
+            // Try different property name formats in order of preference
+            const possibleNames = [
+                camelCaseKey,                        // furnace_Temp (ASP.NET Core default)
+                sensorKey,                           // Furnace_Temp (original)
+                convertToCamelCase(sensorKey),       // furnaceTemp
+                sensorKey.toLowerCase(),             // furnace_temp
+                sensorKey.replace('_', ''),          // FurnaceTemp
+                sensorKey.toLowerCase().replace('_', ''), // furnacetemp
+                convertToPascalCase(sensorKey)       // FurnaceTemp
+            ];
+            
+            for (const name of possibleNames) {
+                if (sensorData.hasOwnProperty(name) && sensorData[name] !== undefined && sensorData[name] !== null) {
+                    return sensorData[name];
+                }
+            }
+            
+            // If still not found, return 0 (this is normal for sensors that haven't been initialized yet)
+            return 0;
+        }
+
+        // Convert snake_case to camelCase
+        function convertToCamelCase(str) {
+            return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+        }
+
+        // Convert snake_case to PascalCase
+        function convertToPascalCase(str) {
+            return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase())
+                     .replace(/^[a-z]/, match => match.toUpperCase());
         }
 
         // Create sensor element
@@ -261,10 +302,16 @@
             const warningMessages = document.getElementById('warningMessages');
             const alarmMessages = document.getElementById('alarmMessages');
 
+            // Get warning and alarm status with different possible property names
+            const warningLED = sensorData.warning_LED || sensorData.warningLED || sensorData.Warning_LED || false;
+            const alarmSystem = sensorData.alarm_System || sensorData.alarmSystem || sensorData.Alarm_System || false;
+            const activeWarnings = sensorData.activeWarnings || sensorData.ActiveWarnings || [];
+            const activeAlarms = sensorData.activeAlarms || sensorData.ActiveAlarms || [];
+
             // Update warning light
-            if (sensorData.warning_LED || sensorData.activeWarnings?.length > 0) {
+            if (warningLED || activeWarnings.length > 0) {
                 warningLight.className = 'light-indicator warning-on';
-                warningMessages.innerHTML = sensorData.activeWarnings?.map(msg => 
+                warningMessages.innerHTML = activeWarnings.map(msg => 
                     `<div class="message-item">${msg}</div>`
                 ).join('') || '<div class="message-item">هشدار فعال</div>';
             } else {
@@ -273,9 +320,9 @@
             }
 
             // Update alarm light
-            if (sensorData.alarm_System || sensorData.activeAlarms?.length > 0) {
+            if (alarmSystem || activeAlarms.length > 0) {
                 alarmLight.className = 'light-indicator alarm-on';
-                alarmMessages.innerHTML = sensorData.activeAlarms?.map(msg => 
+                alarmMessages.innerHTML = activeAlarms.map(msg => 
                     `<div class="message-item">${msg}</div>`
                 ).join('') || '<div class="message-item">آلارم فعال</div>';
             } else {
@@ -394,7 +441,7 @@
             if (charts.temperatureChart) {
                 const now = new Date().toLocaleTimeString('fa-IR');
                 charts.temperatureChart.data.labels.push(now);
-                charts.temperatureChart.data.datasets[0].data.push(sensorData.furnace_Temp || 0);
+                charts.temperatureChart.data.datasets[0].data.push(getSensorValue('Furnace_Temp'));
                 
                 if (charts.temperatureChart.data.labels.length > 20) {
                     charts.temperatureChart.data.labels.shift();
@@ -405,27 +452,27 @@
 
             if (charts.safetyChart) {
                 charts.safetyChart.data.datasets[0].data = [
-                    sensorData.gas_Methane || 0,
-                    sensorData.gas_CO || 0,
-                    sensorData.tank_Pressure || 0
+                    getSensorValue('Gas_Methane'),
+                    getSensorValue('Gas_CO'),
+                    getSensorValue('Tank_Pressure')
                 ];
                 charts.safetyChart.update();
             }
 
             if (charts.productionChart) {
                 charts.productionChart.data.datasets[0].data = [
-                    sensorData.machine_Sound || 0,
-                    sensorData.conveyor_Dist || 0,
-                    sensorData.coolant_Valve || 0
+                    getSensorValue('Machine_Sound'),
+                    getSensorValue('Conveyor_Dist'),
+                    getSensorValue('Coolant_Valve')
                 ];
                 charts.productionChart.update();
             }
 
             if (charts.electricalChart) {
                 charts.electricalChart.data.datasets[0].data = [
-                    sensorData.main_Current || 0,
-                    sensorData.engine_Vibe || 0,
-                    sensorData.input_Voltage || 0
+                    getSensorValue('Main_Current'),
+                    getSensorValue('Engine_Vibe'),
+                    getSensorValue('Input_Voltage')
                 ];
                 charts.electricalChart.update();
             }
