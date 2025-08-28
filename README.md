@@ -35,19 +35,21 @@
 - .NET 9.0 SDK
 - Visual Studio یا VS Code
 
-### مراحل نصب:
+### مراحل اجرا:
 
-1. **بازیابی پکیج‌ها:**
+1. **انتقال پوشه ClientConsoleApp به خارج از پروژه**
+
+2. **بازیابی پکیج‌ها:**
 ```bash
 dotnet restore
 ```
 
-2. **اجرای برنامه:**
+3. **اجرای برنامه:**
 ```bash
-dotnet run
+dotnet run --urls="http://0.0.0.0:5000"
 ```
 
-3. **دسترسی به داشبورد:**
+4. **دسترسی به داشبورد:**
    - مرورگر خود را باز کنید
    - به آدرس `https://localhost:5001` بروید
 
@@ -113,7 +115,7 @@ void sendSensorData() {
 ### تست از طریق curl:
 
 ```bash
-curl -X POST "https://localhost:5001/api/sensor/raw" \
+curl -X POST "https://localhost:5000/api/sensor/raw" \
   -H "Content-Type: text/plain" \
   -d "Smart Factory Monitoring System - AUTOMATIC MODE - ONLINE
 Furnace_Temp:892.00,Env_Humid:45.50,Light_Level:210,Gas_Methane:15,Gas_CO:61,Machine_Sound:512,Tank_Pressure:72,Main_Current:123,Engine_Vibe:25,Input_Voltage:230,Conveyor_Dist:150,Water_Leak:100,Flame_Status:0,Gate_Status:0,E_Stop_Button:0,Coolant_Valve:90"
