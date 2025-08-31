@@ -26,7 +26,7 @@ echo "🚨 Test 3: Sending emergency sensor data..."
 curl -X POST "http://localhost:5000/api/sensor/raw" \
   -H "Content-Type: text/plain" \
   -d "Smart Factory Monitoring System - AUTOMATIC MODE - ONLINE
-Furnace_Temp:1050.00,Env_Humid:90.00,Light_Level:30,Gas_Methane:400,Gas_CO:120,Machine_Sound:700,Tank_Pressure:95,Main_Current:180,Engine_Vibe:80,Input_Voltage:180,Conveyor_Dist:0,Water_Leak:500,Flame_Status:1,Gate_Status:1,E_Stop_Button:1,Coolant_Valve:100"
+Furnace_Temp:1050.00,Env_Humid:90.00,Light_Level:30,Gas_Methane:400,Gas_CO:70,Machine_Sound:700,Tank_Pressure:95,Main_Current:180,Engine_Vibe:80,Input_Voltage:180,Conveyor_Dist:0,Water_Leak:100,Flame_Status:1,Gate_Status:1,E_Stop_Button:1,Coolant_Valve:100"
 
 echo -e "\n\n"
 
