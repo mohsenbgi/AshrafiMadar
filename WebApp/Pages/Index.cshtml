@@ -75,6 +75,9 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeSignalR();
+            connection.onclose(async () => {
+                await connection.start();
+            });
             loadSensorLocations();
             loadCurrentData();
             initializeCharts();
@@ -275,6 +278,7 @@
         }
 
 
+
         // --- UNCHANGED HELPER FUNCTIONS ---
         // (Copied here to make the script block complete)
         async function initializeSignalR() { connection = new signalR.HubConnectionBuilder().withUrl("/sensorhub").build(); connection.on("SensorDataUpdate", updateDashboard); try { await connection.start(); console.log("SignalR Connected"); } catch (err) { console.error("SignalR Connection Error: ", err); } }
@@ -290,9 +294,7 @@
         function updateWarningLights() { const warningLight = document.getElementById('warningLight'); const alarmLight = document.getElementById('alarmLight'); const warningMessages = document.getElementById('warningMessages'); const alarmMessages = document.getElementById('alarmMessages'); const activeWarnings = sensorData.activeWarnings || []; const activeAlarms = sensorData.activeAlarms || []; const warningLED = getSensorValue('Warning_LED') || activeWarnings.length > 0; const alarmSystem = getSensorValue('Alarm_System') || activeAlarms.length > 0; if (warningLED) { warningLight.className = 'light-indicator warning-on'; warningMessages.innerHTML = activeWarnings.map(msg => `<div class="message-item">${msg}</div>`).join('') || '<div class="message-item">هشدار فعال</div>'; } else { warningLight.className = 'light-indicator off'; warningMessages.innerHTML = '<div>بدون هشدار</div>'; } if (alarmSystem) { alarmLight.className = 'light-indicator alarm-on'; alarmMessages.innerHTML = activeAlarms.map(msg => `<div class="message-item">${msg}</div>`).join('') || '<div class="message-item">آلارم فعال</div>'; } else { alarmLight.className = 'light-indicator off'; alarmMessages.innerHTML = '<div>وضعیت عادی</div>'; } }
         function createFactoryLayout() { const layout = document.getElementById('factoryLayout'); if (!layout || sensorLocations.length === 0) return; const areas = {}; sensorLocations.forEach(sensor => { if (!areas[sensor.area]) areas[sensor.area] = []; areas[sensor.area].push(sensor); }); layout.innerHTML = ''; for (const areaName in areas) { const areaDiv = document.createElement('div'); areaDiv.className = 'area-section'; areaDiv.innerHTML = `<div class="area-title">${areaName}</div><div class="area-sensors">${areas[areaName].map(s => `<div class="area-sensor" style="--sensor-color: ${s.color || '#3498db'};"><span>${s.icon}</span><span>${s.name}</span></div>`).join('')}</div>`; layout.appendChild(areaDiv); } }
         function updateTimestamp() { const now = new Date(); const persianTime = now.toLocaleString('fa-IR'); document.getElementById('timestamp').textContent = `⏰ آخرین بروزرسانی: ${persianTime}`; document.getElementById('fullTimestamp').textContent = `آخرین بروزرسانی: ${persianTime}`; }
-        connection.onclose(async () => {
-            await connection.start();
-        });
+        
     </script>
 </body>
 </html>
